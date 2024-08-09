@@ -1,7 +1,6 @@
-import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import Phaser from "phaser";
 import GameManager from "#app/test/utils/gameManager";
-import overrides from "#app/overrides";
 import { TurnInitPhase } from "#app/phases";
 import { getMovePosition } from "#app/test/utils/gameManagerUtils";
 import { Stat } from "#app/data/pokemon-stat";
@@ -9,6 +8,7 @@ import { Abilities } from "#enums/abilities";
 import { Moves } from "#enums/moves";
 import { Species } from "#enums/species";
 import { SpeedSwappedTag } from "#app/data/battler-tags.js";
+import { SPLASH_ONLY } from "#test/utils/testUtils";
 
 describe("Moves - Speed Swap", () => {
   describe("integration tests", () => {
@@ -26,22 +26,23 @@ describe("Moves - Speed Swap", () => {
     beforeEach(() => {
       game = new GameManager(phaserGame);
 
-      vi.spyOn(overrides, "BATTLE_TYPE_OVERRIDE", "get").mockReturnValue("single");
+      game.override.battleType("single");
 
-      vi.spyOn(overrides, "OPP_SPECIES_OVERRIDE", "get").mockReturnValue(Species.RATTATA);
-      vi.spyOn(overrides, "OPP_MOVESET_OVERRIDE", "get").mockReturnValue([Moves.SPLASH, Moves.SPLASH, Moves.SPLASH, Moves.SPLASH]);
-      vi.spyOn(overrides, "OPP_ABILITY_OVERRIDE", "get").mockReturnValue(Abilities.NONE);
+      game.override.enemySpecies(Species.RATTATA);
+      game.override.enemyLevel(100);
+      game.override.enemyMoveset(SPLASH_ONLY);
+      game.override.enemyAbility(Abilities.NONE);
 
-      vi.spyOn(overrides, "STARTING_LEVEL_OVERRIDE", "get").mockReturnValue(100);
-      vi.spyOn(overrides, "MOVESET_OVERRIDE", "get").mockReturnValue([Moves.SPEED_SWAP, Moves.SPLASH]);
-      vi.spyOn(overrides, "ABILITY_OVERRIDE", "get").mockReturnValue(Abilities.NONE);
+      game.override.startingLevel(100);
+      game.override.moveset([Moves.SPEED_SWAP, Moves.SPLASH]);
+      game.override.ability(Abilities.NONE);
     });
 
     it("Speed stats of player pokemon and enemy pokemon should be swapped when used once", { timeout: 10000 }, async () => {
       await game.startBattle([Species.ALOLA_RAICHU]);
 
-      const user = game.scene.getPlayerPokemon();
-      const enemy = game.scene.getEnemyPokemon();
+      const user = game.scene.getPlayerPokemon()!;
+      const enemy = game.scene.getEnemyPokemon()!;
       const origUserSpd = user.getStat(Stat.SPD);
       const origEnemySpd = enemy.getStat(Stat.SPD);
 
@@ -61,8 +62,8 @@ describe("Moves - Speed Swap", () => {
     it("Speed swap can be used multiple times", { timeout: 10000 }, async () => {
       await game.startBattle([Species.ALOLA_RAICHU]);
 
-      const user = game.scene.getPlayerPokemon();
-      const enemy = game.scene.getEnemyPokemon();
+      const user = game.scene.getPlayerPokemon()!;
+      const enemy = game.scene.getEnemyPokemon()!;
       const origUserSpd = user.getStat(Stat.SPD);
       const origEnemySpd = enemy.getStat(Stat.SPD);
 
@@ -84,8 +85,8 @@ describe("Moves - Speed Swap", () => {
     it("SpeedSwapped battler tag should lapse on battle end", { timeout: 10000 }, async () => {
       await game.startBattle([Species.ALOLA_RAICHU]);
 
-      const user = game.scene.getPlayerPokemon();
-      const enemy = game.scene.getEnemyPokemon();
+      const user = game.scene.getPlayerPokemon()!;
+      const enemy = game.scene.getEnemyPokemon()!;
       const origUserSpd = user.getStat(Stat.SPD);
 
       expect(user.getTag(SpeedSwappedTag)).toBeUndefined();
@@ -102,8 +103,8 @@ describe("Moves - Speed Swap", () => {
     it("SpeedSwapped battler tag should store the pokemon's original speed stat", { timeout: 10000 }, async () => {
       await game.startBattle([Species.ALOLA_RAICHU]);
 
-      const user = game.scene.getPlayerPokemon();
-      const enemy = game.scene.getEnemyPokemon();
+      const user = game.scene.getPlayerPokemon()!;
+      const enemy = game.scene.getEnemyPokemon()!;
       const origUserSpd = user.getStat(Stat.SPD);
       const origEnemySpd = enemy.getStat(Stat.SPD);
 
