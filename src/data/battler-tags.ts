@@ -1771,6 +1771,20 @@ export class ExposedTag extends BattlerTag {
   }
 }
 
+export class SpeedSwappedTag extends BattlerTag {
+  public origSpd: Stat;
+
+  constructor(sourceId: number) {
+    super(BattlerTagType.SPEED_SWAPPED, BattlerTagLapseType.CUSTOM, 1, Moves.SPEED_SWAP, sourceId);
+  }
+
+  onAdd(pokemon: Pokemon): void {
+    super.onAdd(pokemon);
+
+    this.origSpd = pokemon.getStat(Stat.SPD);
+  }
+}
+
 
 export function getBattlerTag(tagType: BattlerTagType, turnCount: number, sourceMove: Moves, sourceId: number): BattlerTag {
   switch (tagType) {
@@ -1902,6 +1916,8 @@ export function getBattlerTag(tagType: BattlerTagType, turnCount: number, source
   case BattlerTagType.GULP_MISSILE_ARROKUDA:
   case BattlerTagType.GULP_MISSILE_PIKACHU:
     return new GulpMissileTag(tagType, sourceMove);
+  case BattlerTagType.SPEED_SWAPPED:
+    return new SpeedSwappedTag(sourceId);
   case BattlerTagType.NONE:
   default:
     return new BattlerTag(tagType, BattlerTagLapseType.CUSTOM, turnCount, sourceMove, sourceId);

@@ -2775,7 +2775,14 @@ export class ResetStatsAttr extends MoveEffectAttr {
 /**
  * Attribute used for moves which swap the user and the target's stat changes.
  */
-export class SwapStatsAttr extends MoveEffectAttr {
+export class SwapBattleStatsAttr extends MoveEffectAttr {
+  public statsToSwap: BattleStat[];
+
+  constructor(swapStats: BattleStat[] = [...Array(7).keys()]) {
+    super();
+
+    this.statsToSwap = swapStats;
+  }
   /**
    * Swaps the user and the target's stat changes.
    * @param user Pokemon that used the move
@@ -2788,14 +2795,42 @@ export class SwapStatsAttr extends MoveEffectAttr {
     if (!super.apply(user, target, move, args)) {
       return false;
     } //Exits if the move can't apply
-    let priorBoost : integer; //For storing a stat boost
-    for (let s = 0; s < target.summonData.battleStats.length; s++) {
-      priorBoost = user.summonData.battleStats[s]; //Store user stat boost
-      user.summonData.battleStats[s] = target.summonData.battleStats[s]; //Applies target boost to self
-      target.summonData.battleStats[s] = priorBoost; //Applies stored boost to target
-    }
+
+    const userBattleStat   = user.summonData.battleStats;
+    const targetBattleStat = target.summonData.battleStats;
+
+    this.statsToSwap.forEach(stat => {
+      const userStat = userBattleStat[stat];
+      userBattleStat[stat] = targetBattleStat[stat];
+      targetBattleStat[stat] = userStat;
+    });
+
     target.updateInfo();
     user.updateInfo();
+    target.scene.queueMessage(i18next.t("moveTriggers:switchedStatChanges", {pokemonName: getPokemonNameWithAffix(user)}));
+    return true;
+  }
+}
+
+export class SpeedSwapAttr extends MoveEffectAttr {
+  /**
+   * Swaps the user and the target's stat changes.
+   * @param user Pokemon that used the move
+   * @param target The target of the move
+   * @param move Move with this attribute
+   * @param args N/A
+   * @returns true if the function succeeds
+   */
+
+  apply(user: Pokemon, target: Pokemon, move: Move, args: any []): boolean {
+    if (!super.apply(user, target, move, args)) {
+      return false;
+    }
+
+    const userSpeed = user.stats[Stat.SPD];
+    user.stats[Stat.SPD]   = target.stats[Stat.SPD];
+    target.stats[Stat.SPD] = userSpeed;
+
     target.scene.queueMessage(i18next.t("moveTriggers:switchedStatChanges", {pokemonName: getPokemonNameWithAffix(user)}));
     return true;
   }
@@ -7230,9 +7265,9 @@ export function initMoves() {
       .attr(CopyMoveAttr)
       .ignoresVirtual(),
     new StatusMove(Moves.POWER_SWAP, Type.PSYCHIC, -1, 10, 100, 0, 4)
-      .unimplemented(),
+      .attr(SwapBattleStatsAttr, [BattleStat.ATK, BattleStat.SPATK]),
     new StatusMove(Moves.GUARD_SWAP, Type.PSYCHIC, -1, 10, 100, 0, 4)
-      .unimplemented(),
+      .attr(SwapBattleStatsAttr, [BattleStat.DEF, BattleStat.SPDEF]),
     new AttackMove(Moves.PUNISHMENT, Type.DARK, MoveCategory.PHYSICAL, -1, 100, 5, -1, 0, 4)
       .makesContact(true)
       .attr(PunishmentPowerAttr),
@@ -7246,7 +7281,7 @@ export function initMoves() {
       .attr(AddArenaTrapTagAttr, ArenaTagType.TOXIC_SPIKES)
       .target(MoveTarget.ENEMY_SIDE),
     new StatusMove(Moves.HEART_SWAP, Type.PSYCHIC, -1, 10, -1, 0, 4)
-      .attr(SwapStatsAttr),
+      .attr(SwapBattleStatsAttr),
     new SelfStatusMove(Moves.AQUA_RING, Type.WATER, -1, 20, -1, 0, 4)
       .attr(AddBattlerTagAttr, BattlerTagType.AQUA_RING, true, true),
     new SelfStatusMove(Moves.MAGNET_RISE, Type.ELECTRIC, -1, 10, -1, 0, 4)
@@ -8081,7 +8116,9 @@ export function initMoves() {
         user.scene.queueMessage(i18next.t("moveTriggers:burnedItselfOut", {pokemonName: getPokemonNameWithAffix(user)}));
       }),
     new StatusMove(Moves.SPEED_SWAP, Type.PSYCHIC, -1, 10, -1, 0, 7)
-      .unimplemented(),
+      .attr(AddBattlerTagAttr, BattlerTagType.SPEED_SWAPPED, false, false)
+      .attr(AddBattlerTagAttr, BattlerTagType.SPEED_SWAPPED, true, false)
+      .attr(SpeedSwapAttr),
     new AttackMove(Moves.SMART_STRIKE, Type.STEEL, MoveCategory.PHYSICAL, 70, -1, 10, -1, 0, 7),
     new StatusMove(Moves.PURIFY, Type.POISON, -1, 20, -1, 0, 7)
       .condition(

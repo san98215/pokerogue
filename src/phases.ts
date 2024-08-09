@@ -19,7 +19,7 @@ import { biomeLinks, getBiomeName } from "./data/biomes";
 import { ModifierTier } from "./modifier/modifier-tier";
 import { FusePokemonModifierType, ModifierPoolType, ModifierType, ModifierTypeFunc, ModifierTypeOption, PokemonModifierType, PokemonMoveModifierType, PokemonPpRestoreModifierType, PokemonPpUpModifierType, RememberMoveModifierType, TmModifierType, getDailyRunStarterModifiers, getEnemyBuffModifierForWave, getModifierType, getPlayerModifierTypeOptions, getPlayerShopModifierTypeOptionsForWave, modifierTypes, regenerateModifierPoolThresholds } from "./modifier/modifier-type";
 import SoundFade from "phaser3-rex-plugins/plugins/soundfade";
-import { BattlerTagLapseType, CenterOfAttentionTag, EncoreTag, ProtectedTag, SemiInvulnerableTag, TrappedTag } from "./data/battler-tags";
+import { BattlerTagLapseType, CenterOfAttentionTag, EncoreTag, ProtectedTag, SemiInvulnerableTag, TrappedTag, SpeedSwappedTag } from "./data/battler-tags";
 import { getPokemonNameWithAffix } from "./messages";
 import { Starter } from "./ui/starter-select-ui-handler";
 import { Gender } from "./data/gender";
@@ -2554,6 +2554,9 @@ export class BattleEndPhase extends BattlePhase {
 
     for (const pokemon of this.scene.getField()) {
       if (pokemon) {
+        if (pokemon.getTag(SpeedSwappedTag)) {
+          pokemon.lapseTag(BattlerTagType.SPEED_SWAPPED);
+        }
         pokemon.resetBattleSummonData();
       }
     }
@@ -5304,9 +5307,14 @@ export class AttemptRunPhase extends PokemonPhase {
     const playerPokemon = this.getPokemon();
     const enemyField = this.scene.getEnemyField();
 
-    const enemySpeed = enemyField.reduce((total: integer, enemyPokemon: Pokemon) => total + enemyPokemon.getStat(Stat.SPD), 0) / enemyField.length;
+    const userSpeedSwapped = playerPokemon.getTag(SpeedSwappedTag) as SpeedSwappedTag;
+    const userSpeed = !userSpeedSwapped ? playerPokemon.getStat(Stat.SPD) : userSpeedSwapped.origSpd;
 
-    const escapeChance = new Utils.IntegerHolder((((playerPokemon.getStat(Stat.SPD) * 128) / enemySpeed) + (30 * this.scene.currentBattle.escapeAttempts++)) % 256);
+    const enemySpeed = enemyField.reduce((total: integer, enemyPokemon: Pokemon) => total + (
+      !enemyPokemon.getTag(SpeedSwappedTag) ? enemyPokemon.getStat(Stat.SPD) : (enemyPokemon.getTag(SpeedSwappedTag) as SpeedSwappedTag).origSpd
+    ) , 0) / enemyField.length;
+
+    const escapeChance = new Utils.IntegerHolder((((userSpeed * 128) / enemySpeed) + (30 * this.scene.currentBattle.escapeAttempts++)) % 256);
     applyAbAttrs(RunSuccessAbAttr, playerPokemon, null, escapeChance);
 
     if (playerPokemon.randSeedInt(256) < escapeChance.value) {
